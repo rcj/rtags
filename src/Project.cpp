@@ -323,9 +323,9 @@ void Project::onJobFinished(const std::shared_ptr<IndexData> &indexData)
     assert(jobData->job);
     const bool success = jobData->job->flags & (IndexerJob::CompleteLocal|IndexerJob::CompleteRemote);
     if (success && jobData->job->flags & (IndexerJob::Crashed|IndexerJob::Aborted)) {
-        error() << "Could die" << String::format<8>("0x%x", jobData->job->flags);
+        error() << "Will die" << String::format<8>("0x%x", jobData->job->flags) << Location::path(fileId);
     }
-    // assert(!success || !(jobData->job->flags & (IndexerJob::Crashed|IndexerJob::Aborted)));
+    assert(!success || !(jobData->job->flags & (IndexerJob::Crashed|IndexerJob::Aborted)));
     if (jobData->job->flags & IndexerJob::Crashed) {
         ++jobData->crashCount;
     } else {
