@@ -342,10 +342,7 @@ void Server::onNewConnection(SocketServer *server)
         conn->disconnected().connect(std::bind(&Server::onConnectionDisconnected, this, std::placeholders::_1));
 
         if (debugMulti) {
-            String ip;
-            uint16_t port;
-            if (conn->client()->peer(&ip, &port))
-                error() << "Got connection from" << String::format<64>("%s:%d", ip.constData(), port);
+            error() << "Got connection from" << conn->client()->peerString();
         }
     }
 }
@@ -479,9 +476,8 @@ void Server::handleIndexerMessage(const IndexerMessage &message, Connection *con
     mProcessingJobs.erase(it);
     assert(!(job->flags & IndexerJob::FromRemote));
 
-    String ip;
-    uint16_t port;
-    if (conn->client()->peer(&ip, &port))
+    const String ip = conn->client()->peerName();
+    if (!ip.isEmpty())
         indexData->message << String::format<64>(" from %s", ip.constData());
 
     const IndexerJob::Flag runningFlag = (ip.isEmpty() ? IndexerJob::RunningLocal : IndexerJob::Remote);
@@ -1429,7 +1425,7 @@ void Server::handleJobRequestMessage(const JobRequestMessage &message, Connectio
         if (!(job->flags & IndexerJob::FromRemote)) {
             assert(!job->process);
             if (debugMulti)
-                error() << "sending job for" << job->sourceFile << conn->client()->peerName();
+                error() << "sending job for" << job->sourceFile << conn->client()->peerString();
             job->started = Rct::monoMs();
             job->flags |= IndexerJob::Remote;
             job->flags &= ~IndexerJob::Rescheduled;
@@ -1838,7 +1834,8 @@ void Server::handleMulticastForwardMessage(const MulticastForwardMessage &messag
     String ip = message.ip();
     uint16_t port = message.port();
     assert(ip.isEmpty() == (port == 0));
-    if (!port && !conn->client()->peer(&ip, &port)) {
+    ip = conn->client()->peerName(&port);
+    if (ip.isEmpty()) {
         error() << "Unable to get peer from socket";
         return;
     }
